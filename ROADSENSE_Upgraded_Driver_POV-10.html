@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ROADSENSE — Interactive Driver POV</title>
+<style>
+:root{
+ --ink:#10202b;--glass:rgba(255,255,255,.66);--glass2:rgba(255,255,255,.88);
+ --blue:#1769aa;--green:#15965c;--red:#d94343;--gold:#e8aa20;
+ --shadow:0 18px 55px rgba(0,0,0,.25)
+}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Inter,Arial,sans-serif;color:var(--ink)}
+body{background:linear-gradient(135deg,#80c9ee,#bce8d1 55%,#f5dc8a);overflow-x:hidden}
+button{font:inherit}.hidden{display:none!important}
+.screen{min-height:100vh;display:none;align-items:center;justify-content:center;padding:20px}
+.screen.active{display:flex}
+.glass{background:var(--glass);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid #fff9;border-radius:26px;box-shadow:var(--shadow)}
+#menu .glass{width:min(980px,96vw);padding:44px;text-align:center}
+.logo{font-size:clamp(46px,9vw,90px);font-weight:1000;letter-spacing:3px;color:#174b72}
+.logo b{color:#df4c42}.tag{font-size:clamp(18px,3vw,28px);font-weight:900}
+.menuButtons{display:flex;justify-content:center;flex-wrap:wrap;gap:12px;margin:28px 0}
+.btn{border:0;border-radius:14px;padding:13px 21px;background:var(--blue);color:#fff;font-weight:900;cursor:pointer;box-shadow:0 6px 0 #0c4b7b;transition:.15s}
+.btn:hover{transform:translateY(-2px)}.btn:active{transform:translateY(2px);box-shadow:0 3px #0c4b7b}
+.btn.green{background:var(--green);box-shadow:0 6px #0b663f}.btn.red{background:var(--red);box-shadow:0 6px #972929}.btn.gold{background:#c68c12;box-shadow:0 6px #8b620c}
+#game{padding:10px}.game{width:min(1380px,99vw)}
+.topbar{display:grid;grid-template-columns:1fr auto 1fr;gap:9px;margin-bottom:9px;align-items:center}
+.hud{padding:9px 13px;border-radius:15px;background:var(--glass);backdrop-filter:blur(10px);font-weight:900}
+.center{text-align:center}.right{text-align:right}
+.xp{height:8px;background:#0002;border-radius:99px;overflow:hidden;margin-top:5px}.xp i{display:block;height:100%;width:0;background:var(--green);transition:.4s}
+.viewport{height:min(720px,74vh);min-height:550px;position:relative;overflow:hidden;border-radius:25px;background:#77b9db;box-shadow:var(--shadow);border:3px solid #fff9}
+.sky{position:absolute;inset:0 0 46%;background:linear-gradient(#71bce1,#dff6ff)}
+.sun{position:absolute;width:70px;height:70px;border-radius:50%;background:#ffd86b;right:12%;top:9%;box-shadow:0 0 40px #fff4}
+.cloud{position:absolute;width:150px;height:38px;border-radius:99px;background:#fff9;left:9%;top:14%}.cloud:after{content:"";position:absolute;width:70px;height:70px;border-radius:50%;background:#fff9;left:42px;top:-33px}
+.cloud.c2{left:auto;right:28%;top:22%;transform:scale(.65)}
+.terrain{position:absolute;inset:45% 0 0;background:linear-gradient(#68ad50,#4c8f40)}
+.city{position:absolute;left:0;right:0;bottom:55%;height:100px;display:flex;align-items:end;gap:7px;padding:0 3%}
+.build{background:#63858f;width:7%;height:var(--h);border-radius:3px 3px 0 0;opacity:.8}
+.road{position:absolute;left:13%;right:13%;top:40%;bottom:-8%;background:#373d43;clip-path:polygon(35% 0,65% 0,100% 100%,0 100%)}
+.laneLine{position:absolute;left:50%;top:42%;bottom:0;width:6px;transform:translateX(-50%);background:repeating-linear-gradient(#fff 0 38px,transparent 38px 78px);z-index:2}
+.edge{position:absolute;top:40%;bottom:0;width:5px;background:#fff}.edge.l{left:13%}.edge.r{right:13%}
+.dashboard{position:absolute;z-index:40;bottom:-1px;left:0;right:0;height:29%;background:linear-gradient(#202830,#0e141a);border-radius:40% 40% 0 0/35% 35% 0 0;border-top:5px solid #37434c}
+.steering{position:absolute;z-index:50;left:50%;bottom:2%;transform:translateX(-50%);width:170px;height:170px;border:18px solid #171b20;border-radius:50%;box-shadow:inset 0 0 0 5px #4b555d;transition:.2s}
+.steering:before,.steering:after{content:"";position:absolute;background:#171b20;left:50%;top:50%;transform-origin:0 0}
+.steering:before{width:65px;height:13px;transform:translate(0,-50%) rotate(30deg)}
+.steering:after{width:65px;height:13px;transform:translate(0,-50%) rotate(150deg)}
+.hub{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:55px;height:55px;background:#333;border-radius:50%;border:4px solid #777;display:grid;place-items:center;color:#fff;font-size:12px;font-weight:1000}
+.cluster{position:absolute;left:50%;bottom:20%;transform:translateX(-50%);display:flex;gap:18px;z-index:52}
+.gauge{width:75px;height:45px;border:3px solid #84909a;border-radius:50% 50% 0 0;background:#111;color:#f4d25d;text-align:center;padding-top:11px;font-weight:1000;font-size:13px}
+.mirror{position:absolute;z-index:45;width:155px;height:68px;background:#9cd4e8;border:8px solid #20262c;top:18%;border-radius:50%;box-shadow:inset 0 0 20px #fff8;cursor:pointer}
+.mirror.left{left:2%;transform:rotate(-7deg)}.mirror.right{right:2%;transform:rotate(7deg)}
+.rearMirror{position:absolute;z-index:45;top:6%;left:50%;transform:translateX(-50%);width:210px;height:70px;background:#8fc9df;border:8px solid #222;border-radius:45%;cursor:pointer}
+.hotspot{
+ position:absolute;z-index:35;min-width:45px;height:45px;padding:5px;border:3px solid #fff;border-radius:50%;
+ background:#1769aa;color:#fff;box-shadow:0 0 0 5px #1769aa55,0 8px 20px #0005;
+ display:grid;place-items:center;cursor:pointer;font-weight:1000;animation:pulse 1.5s infinite
+}
+.hotspot:hover{transform:scale(1.13);animation:none}.hotspot.used{background:#687782;box-shadow:none;animation:none}
+.hotspot small{position:absolute;top:48px;color:#10202b;background:#fff;white-space:nowrap;padding:3px 7px;border-radius:8px;font-size:10px}
+#sceneObjects{position:absolute;inset:0;z-index:20}
+.npc{position:absolute;z-index:18;transition:.35s;cursor:pointer}.npc.car2{width:75px;height:115px;background:#d95748;border:4px solid #8b2c25;border-radius:17px;left:50%;top:23%;transform:translateX(-50%)}.npc.car2:before{content:"";position:absolute;left:9px;right:9px;top:12px;height:35px;background:#bde6f5;border-radius:8px}
+.npc.moto{font-size:48px;left:63%;top:42%}.npc.person{font-size:54px;left:30%;top:41%}.npc.bike{font-size:55px;left:67%;top:39%}
+.stop{position:absolute;z-index:18;right:7%;top:31%;cursor:pointer}.stopShape{width:76px;height:76px;background:#df3e3e;color:#fff;display:grid;place-items:center;font-weight:1000;clip-path:polygon(30% 0,70% 0,100% 30%,100% 70%,70% 100%,30% 100%,0 70%,0 30%);border:5px solid #fff;outline:3px solid #df3e3e}
+.traffic{position:absolute;z-index:22;top:12%;left:50%;transform:translateX(-50%);background:#222;padding:7px;border-radius:11px;cursor:pointer}.bulb{width:29px;height:29px;border-radius:50%;background:#555;margin:3px}.bulb.red.on{background:#f33;box-shadow:0 0 24px #f33}.bulb.yellow.on{background:#fd3;box-shadow:0 0 24px #fd3}.bulb.green.on{background:#2e7;box-shadow:0 0 24px #2e7}
+.cross{position:absolute;z-index:10;top:49%;left:33%;width:34%;height:85px;transform:skewX(-7deg)}.cross i{display:block;height:9px;background:#fff;margin:7px}
+.pedestrian{position:absolute;z-index:21;left:29%;top:43%;font-size:52px;cursor:pointer}
+.questionPanel{position:absolute;z-index:70;left:50%;top:51%;transform:translate(-50%,-50%);width:min(650px,91%);background:#fffffff5;border-radius:22px;padding:24px;box-shadow:0 25px 70px #0006;display:none;animation:pop .2s}
+.questionPanel.show{display:block}.questionPanel h2{margin:0 0 8px}.questionPanel p{margin:7px 0 15px}
+.answers{display:grid;grid-template-columns:1fr 1fr;gap:9px}.answer{border:2px solid #d2dce2;background:#f8fbfd;border-radius:12px;padding:12px;text-align:left;font-weight:800;cursor:pointer}.answer:hover{border-color:#2878d7;background:#eef7ff}.answer:disabled{opacity:.7}
+.feedback{margin-top:13px;padding:12px;border-radius:13px;font-weight:800}.feedback.ok{background:#d8f6e4;color:#075e38}.feedback.bad{background:#ffe0e0;color:#8d2424}
+.sideTip{position:absolute;z-index:60;left:12px;top:12px;max-width:290px;background:var(--glass);padding:10px 13px;border-radius:14px;font-weight:800;font-size:13px}
+.controls{position:absolute;z-index:80;right:12px;bottom:10%;display:grid;grid-template-columns:repeat(3,52px);gap:5px}.ctrl{width:52px;height:45px;border:0;border-radius:12px;background:#fffc;font-size:20px;font-weight:1000;cursor:pointer}.ctrl:nth-child(2){grid-column:2}.ctrl:nth-child(3){grid-column:1}.ctrl:nth-child(4){grid-column:3}
+.bottomActions{display:flex;gap:8px;justify-content:center;margin-top:8px;flex-wrap:wrap}
+.overlay{position:fixed;inset:0;background:#0008;z-index:200;display:none;align-items:center;justify-content:center;padding:20px}.overlay.show{display:flex}
+.modal{width:min(760px,95vw);max-height:90vh;overflow:auto;background:#fff;border-radius:24px;padding:26px;box-shadow:var(--shadow)}
+.levelGrid,.achGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.levelCard,.ach{padding:14px;border-radius:15px;background:#f3f7f9;border:2px solid #dce5ea}.levelCard.locked{opacity:.5}.badge{font-size:38px}
+.flash{animation:flash .4s}.shake{animation:shake .4s}.bounce{animation:bounce .45s}
+@keyframes pulse{50%{box-shadow:0 0 0 11px #1769aa18,0 8px 25px #0004}}
+@keyframes pop{from{opacity:0;transform:translate(-50%,-50%) scale(.85)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+@keyframes flash{50%{filter:brightness(1.8)}}@keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}@keyframes bounce{50%{transform:translateY(-16px)}}
+@media(max-width:850px){
+ .topbar{grid-template-columns:1fr 1fr}.center{grid-column:1/-1;grid-row:1}
+ .viewport{min-height:610px;height:76vh}.dashboard{height:26%}.steering{width:135px;height:135px}.rearMirror{width:155px}
+ .mirror{width:105px;height:52px}.answers{grid-template-columns:1fr}.controls{bottom:2%}
+}
+@media(max-width:500px){
+ #menu .glass{padding:25px}.viewport{min-height:590px}.sideTip{max-width:205px;font-size:11px}.stop{right:2%}
+ .steering{width:115px;height:115px;border-width:14px}.cluster{bottom:18%}.gauge{width:60px;height:38px;font-size:10px}
+}
+</style>
+</head>
+<body>
+
+<section id="menu" class="screen active">
+ <div class="glass">
+  <div class="logo">ROAD<b>SENSE</b></div>
+  <div class="tag">Learn. Decide. Stay Safe on the Road!</div>
+  <p>Enter a first-person driving environment. Explore objects, notice hazards, answer real road-safety decisions, and unlock new driving situations.</p>
+  <div class="menuButtons">
+   <button class="btn green" id="start">START DRIVING</button>
+   <button class="btn" id="continue">CONTINUE</button>
+   <button class="btn gold" id="levels">LEVELS</button>
+   <button class="btn" id="settings">SETTINGS</button>
+   <button class="btn" id="how">HOW TO PLAY</button>
+  </div>
+  <div id="menuStats"></div>
+ </div>
+</section>
+
+<section id="game" class="screen">
+ <div class="game">
+  <div class="topbar">
+   <div class="hud">LEVEL <span id="lv">1</span><br><small id="lvName">ROAD SIGNS</small></div>
+   <div class="hud center">XP <span id="xp">0</span> / <span id="xpNext">100</span><div class="xp"><i id="xpBar"></i></div></div>
+   <div class="hud right">SCORE <span id="score">0</span> • 🔥 <span id="streak">0</span><br>❤️ <span id="lives">3</span></div>
+  </div>
+
+  <div class="viewport" id="viewport">
+   <div class="sky"></div><div class="sun"></div><div class="cloud"></div><div class="cloud c2"></div>
+   <div class="city" id="city"></div><div class="terrain"></div>
+   <div class="road"></div><div class="laneLine"></div><div class="edge l"></div><div class="edge r"></div>
+   <div class="cross hidden" id="cross"><i></i><i></i><i></i><i></i><i></i></div>
+   <div id="sceneObjects"></div>
+   <div class="rearMirror" data-object="rear" title="Rear-view mirror"></div>
+   <div class="mirror left" data-object="side" title="Left side mirror"></div>
+   <div class="mirror right" data-object="side" title="Right side mirror"></div>
+   <div class="traffic" id="traffic"><div class="bulb red on"></div><div class="bulb yellow"></div><div class="bulb green"></div></div>
+   <div class="sideTip" id="tip">Look around. Glowing objects are interactive.</div>
+   <div class="dashboard"></div>
+   <div class="cluster"><div class="gauge">SPEED<br><span id="speed">0</span> km/h</div><div class="gauge">SAFETY<br><span id="safety">100</span>%</div><div class="gauge">FUEL<br><span id="fuel">100</span>%</div></div>
+   <div class="steering" id="wheel"><div class="hub">RS</div></div>
+   <div class="controls"><button class="ctrl" data-move="left">◀</button><button class="ctrl" data-move="up">▲</button><button class="ctrl" data-move="down">▼</button><button class="ctrl" data-move="right">▶</button></div>
+   <div class="questionPanel" id="questionPanel"></div>
+  </div>
+
+  <div class="bottomActions">
+   <button class="btn" id="pause">PAUSE</button>
+   <button class="btn" id="roadSigns">ROAD SIGNS</button>
+   <button class="btn red" id="quit">MAIN MENU</button>
+  </div>
+ </div>
+</section>
+
+<div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
+
+<script>
+"use strict";
+
+/* =======================
+   DATA
+======================= */
+const LEVELS=[
+ {name:"ROAD SIGNS",intro:"Learn to notice basic road signs, signals and markings.",
+  objects:[
+   {id:"stop",icon:"🛑",label:"STOP SIGN",q:"You approach this STOP sign. What is the safest action?",a:["Slow slightly and continue","Come to a complete stop, observe, then proceed when safe and permitted","Honk and continue","Stop only if another car is present"],c:1,e:"A STOP sign requires a complete stop. Check the road and proceed only when safe and permitted."},
+   {id:"light",icon:"🚦",label:"TRAFFIC LIGHT",q:"The traffic light is red. What should you do?",a:["Stop before the stop line","Speed up","Continue if the road looks empty","Ignore the signal"],c:0,e:"A red traffic signal means stop. Wait for the permitted signal."},
+   {id:"crossing",icon:"🚸",label:"PEDESTRIAN CROSSING",q:"A pedestrian is waiting at the marked crossing. What is the safe decision?",a:["Speed up","Give the pedestrian the appropriate right of way and proceed safely","Drive around them","Honk continuously"],c:1,e:"Pedestrian crossings are designed to help pedestrians cross safely. Drivers must follow the applicable crossing rules."},
+   {id:"speed",icon:"🔢",label:"SPEED LIMIT",q:"What does a posted speed limit tell you?",a:["A recommended minimum speed","The maximum lawful speed under the stated conditions","A speed you may ignore at night","A target speed for overtaking"],c:1,e:"A speed-limit sign communicates the maximum permitted speed, subject to applicable conditions and rules."},
+   {id:"mirror",icon:"🪞",label:"SIDE MIRROR",q:"Why should a driver check mirrors regularly?",a:["To monitor surrounding traffic","Only to look at the car's paint","To avoid using turn signals","To drive faster"],c:0,e:"Mirror checks help a driver stay aware of vehicles and other road users around the car."}
+  ]},
+ {name:"SAFE DRIVING INSIDE THE CAR",intro:"Understand how driver controls and safety equipment support safe driving.",
+  objects:[
+   {id:"seatbelt",icon:"🔒",label:"SEAT BELT",q:"Why is wearing a seat belt important?",a:["It makes the trip shorter","It helps restrain occupants and reduce injury risk in a crash","It is only needed on highways","It replaces airbags"],c:1,e:"Seat belts help keep occupants properly restrained and can reduce the risk of serious injury."},
+   {id:"wheel",icon:"⭕",label:"STEERING WHEEL",q:"What should your steering control focus on?",a:["Keeping the vehicle under safe control","Texting while turning","Making sudden movements for fun","Removing both hands unnecessarily"],c:0,e:"Steering should be smooth and controlled so the driver can maintain a safe path."},
+   {id:"brake",icon:"🦶",label:"BRAKE PEDAL",q:"When approaching a hazard, what is the safer approach?",a:["Brake only after impact","Slow and brake as needed while maintaining control","Accelerate toward it","Close your eyes"],c:1,e:"Early, controlled braking can help reduce speed and increase the time available to respond."},
+   {id:"accelerator",icon:"⚡",label:"ACCELERATOR",q:"What should determine your speed?",a:["Road, traffic, visibility and posted limits","How fast another driver goes","Only the music","How late you are"],c:0,e:"Safe speed depends on the legal limit and current road, traffic and visibility conditions."},
+   {id:"turn",icon:"↪️",label:"TURN SIGNAL",q:"Before changing direction or lane, why use a turn signal?",a:["To communicate your intended movement","To make the car louder","To replace mirror checks","Only at night"],c:0,e:"Signals communicate your intended movement to other road users. They do not replace checking that the movement is safe."},
+   {id:"horn",icon:"📣",label:"HORN",q:"What is the safest purpose of the horn?",a:["To express anger","To warn other road users when appropriate","To force pedestrians to run","To replace braking"],c:1,e:"The horn is a warning device. It should not be used aggressively or as a substitute for safe driving."}
+  ]},
+ {name:"TRAFFIC RULES",intro:"Apply traffic controls when several road users interact.",
+  objects:[
+   {id:"intersection",icon:"✚",label:"INTERSECTION",q:"At an intersection with traffic controls, what should you do?",a:["Follow the applicable signals, signs and markings","Copy the fastest driver","Ignore lane markings","Always go first"],c:0,e:"Intersections require careful observation of traffic lights, signs, lane markings and other road users."},
+   {id:"motorcycle",icon:"🏍️",label:"MOTORCYCLE",q:"A motorcycle is traveling near your lane. What is safest?",a:["Cut in closely","Maintain awareness and safe space","Force it onto the shoulder","Follow extremely closely"],c:1,e:"Motorcycles are smaller and can be harder to judge. Keep a safe space and check mirrors before moving."},
+   {id:"bicycle",icon:"🚲",label:"BICYCLE",q:"When sharing the road with a bicycle, what should you do?",a:["Squeeze past closely","Give appropriate space and follow road rules","Honk continuously","Treat it as a stationary object"],c:1,e:"Cyclists are vulnerable road users. Give them appropriate space and respect road rules and markings."},
+   {id:"yield",icon:"🔻",label:"YIELD SIGN",q:"What does a YIELD sign require?",a:["Give way as required and proceed only when safe","Always stop for five minutes","Speed up","Ignore traffic"],c:0,e:"Yield means give way to other road users as required before proceeding."}
+  ]},
+ {name:"HAZARD DETECTION",intro:"Scan the road and identify developing hazards before they become emergencies.",
+  objects:[
+   {id:"unexpectedPed",icon:"🚶",label:"UNEXPECTED PEDESTRIAN",q:"A pedestrian suddenly approaches the road. What should you do?",a:["Accelerate","Slow down and be prepared to stop","Swerve without checking","Use your phone"],c:1,e:"Slow down, observe carefully and be prepared to stop. Avoid sudden unsafe steering."},
+   {id:"laneChange",icon:"🚘",label:"VEHICLE CHANGING LANES",q:"A vehicle begins moving toward your lane. What is safest?",a:["Accelerate into its path","Maintain awareness, create space and respond safely","Close the gap","Look away"],c:1,e:"Create space and avoid competing for the same road position. Use controlled braking or lane adjustment when safe."},
+   {id:"wet",icon:"💧",label:"WET ROAD",q:"What should you generally do on a wet road?",a:["Increase speed","Reduce speed appropriately and increase following distance","Brake constantly","Drive without lights"],c:1,e:"Wet surfaces can reduce traction and increase stopping distance."},
+   {id:"curve",icon:"↩️",label:"SHARP CURVE",q:"Approaching a sharp curve, what is safest?",a:["Adjust speed before the curve and maintain control","Accelerate hard into the curve","Overtake blindly","Ignore warning signs"],c:0,e:"Adjusting speed before a curve improves control and gives more time to respond."},
+   {id:"emergency",icon:"🚑",label:"EMERGENCY VEHICLE",q:"An emergency vehicle approaches with warning signals. What should you do?",a:["Block it","Safely give way according to traffic rules","Race it","Follow directly behind it"],c:1,e:"Give way safely to authorized emergency vehicles and follow applicable traffic rules."}
+  ]},
+ {name:"NIGHT DRIVING",intro:"Manage visibility and road users when daylight is limited.",
+  objects:[
+   {id:"headlight",icon:"💡",label:"HEADLIGHTS",q:"Why are functioning headlights important at night?",a:["They improve visibility and help other road users see the vehicle","They make the vehicle faster","They replace mirrors","They are only decoration"],c:0,e:"Proper headlights help the driver see and help make the vehicle visible to others."},
+   {id:"highbeam",icon:"🔆",label:"HIGH / LOW BEAM",q:"When should you avoid using high beams?",a:["When they could glare other road users","Only when parked","Never","Only in daylight"],c:0,e:"High beams can cause glare. Use the appropriate beam for traffic and road conditions."},
+   {id:"reflective",icon:"🛑",label:"REFLECTIVE SIGN",q:"Why are reflective road signs useful at night?",a:["They help signs remain visible when illuminated","They make roads wider","They replace traffic signals","They mean speed up"],c:0,e:"Reflective materials help road signs remain visible in headlights."},
+   {id:"streetlight",icon:"🏙️",label:"STREETLIGHTS",q:"Even on a well-lit road, what should a driver do?",a:["Maintain attention and a safe speed","Assume every hazard is visible","Use a phone","Drive without lights"],c:0,e:"Streetlights help visibility but do not remove hazards. Stay attentive and adjust speed appropriately."},
+   {id:"pedNight",icon:"🚶‍♂️",label:"NIGHT PEDESTRIAN",q:"A pedestrian is difficult to see at night. What should you do?",a:["Speed up","Slow down and remain alert","Turn off headlights","Look at your phone"],c:1,e:"Limited visibility requires extra caution. Slow down and watch carefully for pedestrians."}
+  ]},
+ {name:"EMERGENCY SITUATIONS",intro:"Respond safely when unexpected road events occur.",
+  objects:[
+   {id:"ambulance",icon:"🚑",label:"AMBULANCE",q:"An ambulance approaches using emergency signals. What is the appropriate response?",a:["Safely give way","Block the lane","Follow it closely","Race ahead"],c:0,e:"Make way safely for authorized emergency vehicles and follow the applicable traffic rules."},
+   {id:"fire",icon:"🚒",label:"FIRE TRUCK",q:"A fire truck is approaching with warning signals. What should you do?",a:["Give way safely","Stop in the middle of its path","Overtake it","Follow it closely"],c:0,e:"Emergency response vehicles need a clear path. Give way safely without creating another hazard."},
+   {id:"police",icon:"🚓",label:"POLICE VEHICLE",q:"A police vehicle is responding to an emergency. What should you do?",a:["Follow it closely","Give way safely as required","Block the intersection","Race it"],c:1,e:"Responding emergency vehicles should be given a safe path according to traffic rules."},
+   {id:"obstruction",icon:"⚠️",label:"ROAD OBSTRUCTION",q:"You see an object blocking part of your lane. What should you do?",a:["Drive straight through it","Slow down, assess, and move around it only when safe and permitted","Close your eyes","Accelerate"],c:1,e:"Reduce speed and assess the obstruction. Do not make a sudden movement without checking surrounding traffic."},
+   {id:"hazard",icon:"⚠️",label:"HAZARD LIGHTS",q:"A stopped vehicle is creating a hazard. What is important?",a:["Ignore it","Stay alert, keep a safe distance and follow road controls","Drive around without checking","Use your phone"],c:1,e:"Hazard awareness and safe spacing reduce the chance of secondary collisions."}
+  ]}
+];
+
+const FINAL=[
+ {icon:"🚦",label:"FINAL: RED LIGHT",q:"The final challenge begins at a red light. What should you do?",a:["Stop before the line","Speed up","Ignore it","Drive through"],c:0,e:"Stop at a red signal and wait for the permitted movement."},
+ {icon:"🚶",label:"FINAL: CROSSING",q:"A pedestrian is crossing. What should you do?",a:["Give way as required and wait safely","Honk to hurry them","Drive around","Accelerate"],c:0,e:"Protect vulnerable road users and follow the crossing rules."},
+ {icon:"📱",label:"FINAL: DISTRACTION",q:"Your phone vibrates while moving. What should you do?",a:["Check it now","Safely stop before checking","Text quickly","Hold it below the wheel"],c:1,e:"Avoid using a phone while driving. Stop safely before checking it."},
+ {icon:"🚑",label:"FINAL: EMERGENCY",q:"An ambulance approaches with warning signals. What is safest?",a:["Give way safely","Race it","Block it","Follow closely"],c:0,e:"Make way safely for an authorized emergency vehicle."},
+ {icon:"🌧️",label:"FINAL: WET ROAD",q:"The road becomes wet. What should you do?",a:["Reduce speed and increase space","Speed up","Brake constantly","Ignore conditions"],c:0,e:"Wet roads can reduce traction and increase stopping distance."}
+];
+
+const $=id=>document.getElementById(id);
+let state={
+ level:0,score:0,xp:0,lives:3,streak:0,safety:100,fuel:100,speed:0,
+ completed:new Set(),used:new Set(),paused:false,active:false,final:false,finalIndex:0
+};
+
+function save(){
+ const data={level:state.level,score:state.score,xp:state.xp,lives:state.lives,streak:state.streak,safety:state.safety,fuel:state.fuel,completed:[...state.completed]};
+ localStorage.setItem("roadsenseSave",JSON.stringify(data));
+}
+function load(){
+ try{
+  const d=JSON.parse(localStorage.getItem("roadsenseSave")||"null");
+  if(!d)return false;
+  state={...state,...d,completed:new Set(d.completed||[]),used:new Set(),paused:false,active:false,final:false,finalIndex:0};
+  return true;
+ }catch(e){return false}
+}
+function reset(){
+ state={level:0,score:0,xp:0,lives:3,streak:0,safety:100,fuel:100,speed:0,completed:new Set(),used:new Set(),paused:false,active:true,final:false,finalIndex:0};
+ save();
+}
+function unlocked(n){return n===0||state.completed.has(n-1)}
+function showScreen(id){document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));$(id).classList.add("active")}
+function sound(file){
+ try{const a=new Audio(file);a.volume=.45;a.play().catch(()=>{})}catch(e){}
+}
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+
+function updateHUD(){
+ $("lv").textContent=state.final?"FINAL":state.level+1;
+ $("lvName").textContent=state.final?"ROADSENSE CHALLENGE":LEVELS[state.level].name;
+ $("score").textContent=state.score;$("xp").textContent=state.xp;$("lives").textContent=state.lives;$("streak").textContent=state.streak;
+ $("safety").textContent=state.safety;$("fuel").textContent=Math.max(0,Math.round(state.fuel));$("speed").textContent=Math.round(state.speed);
+ $("xpNext").textContent=100;
+ $("xpBar").style.width=Math.min(100,state.xp%100)+"%";
+}
+function buildCity(){
+ $("city").innerHTML="";
+ for(let i=0;i<15;i++){const b=document.createElement("div");b.className="build";b.style.setProperty("--h",(35+Math.random()*65)+"px");$("city").appendChild(b)}
+}
+function startGame(){
+ reset();showScreen("game");buildCity();loadLevel();animate();
+}
+function continueGame(){
+ if(!load()){startGame();return}
+ state.active=true;showScreen("game");buildCity();loadLevel();
+}
+function clearScene(){
+ $("sceneObjects").innerHTML="";$("questionPanel").classList.remove("show");
+ document.querySelectorAll(".hotspot").forEach(x=>x.remove());
+ $("cross").classList.add("hidden");
+}
+function addHotspot(obj,x,y){
+ const h=document.createElement("button");h.className="hotspot";h.id="hot_"+obj.id;h.style.left=x;h.style.top=y;h.innerHTML=obj.icon+"<small>"+obj.label+"</small>";
+ h.title="Interact: "+obj.label;
+ h.onclick=()=>interact(obj,h);
+ $("sceneObjects").appendChild(h);
+ return h;
+}
+function loadLevel(){
+ clearScene();state.used=new Set();state.final=false;state.finalIndex=0;
+ const L=LEVELS[state.level];
+ $("tip").textContent=L.intro+" Click glowing objects to learn.";
+ const positions=["8%","28%","48%","68%","83%"];
+ L.objects.forEach((o,i)=>addHotspot(o,positions[i%5],(23+(i%3)*13)+"%"));
+ if(state.level===0){
+  $("traffic").style.display="block";$("stopSignObj")?.classList?.add("hidden");
+  $("cross").classList.remove("hidden");
+ }else if(state.level===1){
+  $("traffic").style.display="none";
+  /* cabin hotspots */
+  addHotspot(L.objects[0],"42%","68%");addHotspot(L.objects[1],"47%","76%");addHotspot(L.objects[2],"57%","78%");
+  addHotspot(L.objects[3],"62%","70%");addHotspot(L.objects[4],"74%","67%");
+ }else{
+  $("traffic").style.display=state.level===2?"block":"none";
+  addRoadObjects(state.level);
+ }
+ updateHUD();save();
+}
+function addRoadObjects(level){
+ const L=LEVELS[level];
+ if(level===2){addRoadEmoji("🏍️","63%","41%","motorcycle");addRoadEmoji("🚲","25%","40%","bicycle")}
+ if(level===3){addRoadEmoji("🚶","29%","42%","unexpectedPed");addRoadEmoji("🚘","57%","31%","laneChange");addRoadEmoji("💧","49%","48%","wet");addRoadEmoji("↩️","78%","34%","curve");}
+ if(level===4){addRoadEmoji("🚶‍♂️","30%","40%","pedNight");addRoadEmoji("💡","45%","27%","headlight");addRoadEmoji("🛑","75%","30%","reflective");}
+ if(level===5){addRoadEmoji("🚑","48%","25%","ambulance");addRoadEmoji("🚒","67%","34%","fire");addRoadEmoji("🚓","30%","32%","police");}
+}
+function addRoadEmoji(icon,x,y,id){
+ const o=LEVELS[state.level].objects.find(z=>z.id===id);if(!o)return;
+ const h=addHotspot({...o,icon},x,y);h.style.background="#e58c1d";
+}
+function findObject(id){return (state.final?FINAL:LEVELS[state.level].objects).find(o=>o.id===id)}
+
+function interact(obj,hot){
+ if(!state.active||state.paused||state.used.has(obj.id))return;
+ state.used.add(obj.id);hot.classList.add("used");hot.disabled=true;
+ openQuestion(obj);
+}
+function openQuestion(obj){
+ const p=$("questionPanel");
+ const choices=shuffle(obj.a.map((text,i)=>({text,correct:i===obj.c})));
+ p.innerHTML=`<h2>${obj.icon} ${obj.label}</h2><p>${obj.q}</p><div class="answers" id="answers"></div><div id="feedback"></div>`;
+ p.classList.add("show");
+ choices.forEach((ch,i)=>{
+  const b=document.createElement("button");b.className="answer";b.textContent=String.fromCharCode(65+i)+". "+ch.text;
+  b.onclick=()=>answer(obj,ch,b);$("answers").appendChild(b);
+ });
+}
+function answer(obj,ch,button){
+ if(button.disabled)return;
+ document.querySelectorAll(".answer").forEach(b=>b.disabled=true);
+ const f=$("feedback");
+ if(ch.correct){
+  button.style.background="#d8f6e4";state.score+=10+Math.min(5,state.streak);state.xp+=20;state.streak++;state.safety=Math.min(100,state.safety+2);
+  f.className="feedback ok";f.innerHTML="✓ Correct! "+obj.e;
+  $("questionPanel").classList.add("bounce");sound("correct.mp3");
+ }else{
+  button.style.background="#ffe0e0";state.lives--;state.streak=0;state.xp=Math.max(0,state.xp-5);state.safety=Math.max(0,state.safety-10);
+  f.className="feedback bad";f.innerHTML="✕ Not quite. "+obj.e;
+  $("questionPanel").classList.add("shake");sound("wrong.mp3");
+ }
+ updateHUD();save();
+ setTimeout(()=>$("questionPanel").classList.remove("bounce","shake"),500);
+ const remaining=[...(state.final?FINAL:LEVELS[state.level].objects)].some(o=>!state.used.has(o.id));
+ setTimeout(()=>{
+  $("questionPanel").classList.remove("show");
+  if(state.lives<=0){gameOver();return}
+  if(!remaining){levelComplete()}
+ },1500);
+}
+function levelComplete(){
+ state.completed.add(state.level);state.xp+=50;state.score+=25;save();
+ if(state.level<LEVELS.length-1){
+  openModal(`<h2>🏁 LEVEL ${state.level+1} COMPLETE!</h2><p><b>${LEVELS[state.level].name}</b> completed.</p>
+  <p>Bonus: +25 score • +50 XP</p><p>Next environment: <b>${LEVELS[state.level+1].name}</b></p>
+  <button class="btn green" id="next">DRIVE TO NEXT LEVEL</button>`);
+  $("next").onclick=()=>{closeModal();state.level++;loadLevel()};
+ }else startFinal();
+}
+function startFinal(){
+ state.final=true;state.finalIndex=0;state.used=new Set();state.lives=Math.max(state.lives,1);
+ clearScene();$("tip").textContent="FINAL CHALLENGE: Make a safe decision at every stage.";
+ updateHUD();nextFinal();
+}
+function nextFinal(){
+ if(state.finalIndex>=FINAL.length){finish();return}
+ const o=FINAL[state.finalIndex];
+ const h=addHotspot(o,"46%","28%");h.style.background="#8a46c7";
+ openQuestion(o);
+}
+function finish(){
+ state.active=false;state.completed.add(LEVELS.length);save();
+ const pct=Math.round((state.score/(LEVELS.length*5*15))*100);
+ openModal(`<h1>🏆 ROAD SENSE CHALLENGE COMPLETE!</h1><p>You finished the complete interactive driving journey.</p>
+ <h2>Score: ${state.score}</h2><p>XP: ${state.xp} • Safety: ${state.safety}% • Streak: ${state.streak}</p>
+ <p><b>Know the rules. Notice hazards. Make safe decisions.</b></p>
+ <button class="btn green" id="again">PLAY AGAIN</button><button class="btn" id="menuBack">MAIN MENU</button>`);
+ $("again").onclick=()=>{closeModal();startGame()};$("menuBack").onclick=()=>{closeModal();showScreen("menu");updateMenu()};
+}
+/* final challenge intercepts normal answer progression */
+const oldAnswer=answer;
+answer=function(obj,ch,button){
+ if(!state.final){oldAnswer(obj,ch,button);return}
+ document.querySelectorAll(".answer").forEach(b=>b.disabled=true);
+ const f=$("feedback");
+ if(ch.correct){
+  button.style.background="#d8f6e4";state.score+=15;state.xp+=25;state.streak++;f.className="feedback ok";f.innerHTML="✓ Correct! "+obj.e;sound("correct.mp3");
+ }else{
+  button.style.background="#ffe0e0";state.lives--;state.streak=0;state.safety=Math.max(0,state.safety-12);f.className="feedback bad";f.innerHTML="✕ "+obj.e;sound("wrong.mp3");
+ }
+ updateHUD();save();
+ setTimeout(()=>{
+  $("questionPanel").classList.remove("show");state.finalIndex++;
+  if(state.lives<=0){gameOver();return} nextFinal();
+ },1500);
+};
+
+function gameOver(){
+ state.active=false;save();openModal(`<h2>🚧 SESSION ENDED</h2><p>Your safety/lives reached zero. Review the rules and try the road again.</p>
+ <button class="btn green" id="retry">TRY AGAIN</button><button class="btn" id="m">MAIN MENU</button>`);
+ $("retry").onclick=()=>{closeModal();startGame()};$("m").onclick=()=>{closeModal();showScreen("menu");updateMenu()};
+}
+function openModal(html){$("modal").innerHTML=html;$("overlay").classList.add("show")}
+function closeModal(){$("overlay").classList.remove("show")}
+function levelsModal(){
+ let h="<h2>🏁 LEVEL MAP</h2><p>Complete each environment to unlock the next.</p><div class='levelGrid'>";
+ LEVELS.forEach((l,i)=>{const ok=unlocked(i);h+=`<div class="levelCard ${ok?"":"locked"}"><b>LEVEL ${i+1}</b><h3>${ok?"🔓":"🔒"} ${l.name}</h3><small>${l.intro}</small></div>`});
+ h+=`</div><br><button class="btn" id="close">CLOSE</button>`;openModal(h);$("close").onclick=closeModal;
+}
+function settings(){
+ openModal(`<h2>⚙️ SETTINGS</h2><p>Audio uses optional local files such as <code>correct.mp3</code>, <code>wrong.mp3</code>, and <code>click.mp3</code>.</p>
+ <p>Controls: <b>Arrow Keys / WASD</b> or the touch buttons.</p><p>Progress is saved automatically using your browser's LocalStorage.</p>
+ <button class="btn red" id="clear">RESET SAVED PROGRESS</button> <button class="btn" id="close">CLOSE</button>`);
+ $("clear").onclick=()=>{localStorage.removeItem("roadsenseSave");location.reload()};$("close").onclick=closeModal;
+}
+function how(){
+ openModal(`<h2>🎮 HOW TO PLAY</h2><ol><li>Explore the first-person road environment.</li><li>Look for glowing interactive objects.</li><li>Tap/click an object to inspect it.</li><li>Answer the safety question connected to that object.</li><li>Correct answers give score, XP and streak.</li><li>Unsafe answers reduce lives and safety.</li><li>Complete all objects to unlock the next level.</li></ol><button class="btn" id="close">GOT IT</button>`);
+ $("close").onclick=closeModal;
+}
+function updateMenu(){
+ const has=!!localStorage.getItem("roadsenseSave");
+ $("menuStats").innerHTML=has?`<p><b>Saved progress detected.</b> Level ${state.level+1} • Score ${state.score} • XP ${state.xp}</p>`:"<p>Progress will be saved automatically.</p>";
+}
+$("start").onclick=startGame;$("continue").onclick=continueGame;$("levels").onclick=levelsModal;$("settings").onclick=settings;$("how").onclick=how;
+$("pause").onclick=()=>{
+ state.paused=!state.paused;
+ openModal(`<h2>${state.paused?"⏸️ GAME PAUSED":"▶️ RESUME"}</h2><p>Take a moment to review your surroundings.</p><button class="btn green" id="resume">RESUME</button><button class="btn" id="settings2">SETTINGS</button>`);
+ $("resume").onclick=()=>{state.paused=false;closeModal()};$("settings2").onclick=settings;
+};
+$("quit").onclick=()=>{save();state.active=false;showScreen("menu");updateMenu()};
+$("roadSigns").onclick=()=>how();
+document.querySelectorAll(".ctrl").forEach(b=>b.onclick=()=>move(b.dataset.move));
+document.addEventListener("keydown",e=>{
+ const map={ArrowLeft:"left",ArrowRight:"right",ArrowUp:"up",ArrowDown:"down",a:"left",d:"right",w:"up",s:"down",A:"left",D:"right",W:"up",S:"down"};
+ if(map[e.key]){e.preventDefault();move(map[e.key])}
+ if(e.key==="Escape"&&state.active&&!state.paused)$("pause").click();
+});
+document.querySelectorAll(".mirror,.rearMirror").forEach(m=>m.onclick=()=>{
+ const obj=LEVELS[state.level].objects.find(o=>o.id==="mirror"||o.id==="rear"||o.id==="side");
+ if(obj&&!state.used.has(obj.id)){const fake=document.createElement("button");fake.className="hotspot used";interact(obj,fake)}
+});
+function move(dir){
+ if(!state.active||state.paused)return;
+ if(dir==="left"){$("steering").style.transform="translateX(-50%) rotate(-18deg)";state.speed=Math.max(0,state.speed-1)}
+ if(dir==="right"){$("steering").style.transform="translateX(-50%) rotate(18deg)";state.speed=Math.max(0,state.speed-1)}
+ if(dir==="up")state.speed=Math.min(80,state.speed+5);
+ if(dir==="down")state.speed=Math.max(0,state.speed-7);
+ $("fuel").textContent=Math.max(0,Math.round(state.fuel));updateHUD();
+}
+function animate(){
+ if(state.active&&!state.paused){
+  state.fuel=Math.max(0,state.fuel-.004*state.speed/10);
+  if(state.speed>55)state.safety=Math.max(0,state.safety-.015);
+  updateHUD();
+  const n=document.querySelector(".npc.car2");if(n){let t=parseFloat(n.style.top)||23;t+=.04;if(t>62)t=23;n.style.top=t+"%"}
+ }
+ requestAnimationFrame(animate);
+}
+updateMenu();
+</script>
+</body>
+</html>
